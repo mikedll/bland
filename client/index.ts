@@ -112,7 +112,7 @@ class App extends Backbone.View {
 
     this.$el.append(this.personsView.render().el)
 
-    const $form: JQuery<HTMLElement> = $('<form><input name="name" type="text"></input></form>');
+    const $form: JQuery<HTMLElement> = $('<form><input name="name" type="text" placeholder="New Name"></input></form>');
     this.$el.append($form);
     return this;
   }
