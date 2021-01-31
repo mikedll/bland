@@ -15,7 +15,6 @@ class App extends Backbone.View {
   
   constructor(options?: Backbone.ViewOptions) {
     super({...{className: 'app'}, ...options});
-    this.people = []
   }
 
   setPeople(people: Person[]) {
