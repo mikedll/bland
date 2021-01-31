@@ -11,6 +11,7 @@ import (
 	"database/sql"
 	_ "github.com/lib/pq"
 	"github.com/joho/godotenv"
+	"strings"
 )
 
 func main() {
@@ -33,6 +34,15 @@ func main() {
 	defer db.Close()
 	
 	staticServe := func(relativePath string, w http.ResponseWriter, req *http.Request) {
+		parts := strings.Split(relativePath, "/")
+
+		for _, part := range parts {
+			if part == ".." {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+		}
+		
 		mimeTypes := map[string]string{
 			"js": "text/javascript",
 			"map": "application/octet-stream",
