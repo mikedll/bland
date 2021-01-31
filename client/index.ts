@@ -30,9 +30,9 @@ class App extends Backbone.View {
       if(this.people.length === 0) {
         this.$el.text("No persons.");
       } else {
-        const $ul = $('<ul></ul>')
+        const $ul = $('<ul class="people"></ul>')
         this.people.forEach((person: Person) => {
-          $ul.append($('<li>' + person.name + '</li>'));
+          $ul.append($('<li>' + person.id + " -> " + person.name + '</li>'));
         });
         this.$el.append($ul);
       }
