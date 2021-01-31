@@ -5,11 +5,6 @@ import $ from 'jquery';
 
 import Backbone from 'backbone';
 
-interface PersonJson {
-  id: number,
-  name: string
-}
-
 class Person extends Backbone.Model {
 }
 
