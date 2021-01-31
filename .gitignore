@@ -8,3 +8,5 @@ public/*
 
 .env
 .envrc
+.emacs.desktop
+.emacs.desktop.lock
