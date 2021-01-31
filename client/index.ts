@@ -1,6 +1,6 @@
 
-let s: { [key: string]: number } = {};
+let s: { [key: string]: string } = {};
 
-s["hello"] = 1;
+s["greeting"] = "Hey everyone, I'm here.";
 
-console.log(s);
+console.log(s['greeting']);
