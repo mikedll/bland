@@ -24,34 +24,63 @@ class PersonView extends Backbone.View {
   }
 }
 
-class App extends Backbone.View {
-  people: Person[];
-  
+class PersonsView extends Backbone.View {
   constructor(options?: Backbone.ViewOptions) {
-    super({...{className: 'app'}, ...options});
-  }
+    super({...{tagName: 'ul', className: 'people'}, ...options});
 
-  setPeople(people: Person[]) {
-    this.people = people;
-    this.render();
+    this.listenTo(this.collection, 'reset', this.render)
   }
   
   render() {
     this.$el.empty();
 
-    if(this.people !== undefined) {
-      if(this.people.length === 0) {
-        this.$el.text("No persons.");
-      } else {
-        const $ul = $('<ul class="people"></ul>')
-        this.people.forEach((person: Person) => {
-          const personView = new PersonView({model: person});
-          $ul.append(personView.render().el)
-        });
-        this.$el.append($ul);
-      }
+    if(this.collection.length === 0) {
+      this.$el.text("No persons.");
     } else {
+      this.collection.each(person => {
+        const personView = new PersonView({model: person});
+        this.$el.append(personView.render().el);
+      });
+    }
+
+    return this;
+  }
+}
+
+class PersonCollection extends Backbone.Collection {
+}
+
+class App extends Backbone.View {
+  busy: boolean;
+  persons: PersonCollection;
+  personsView: PersonsView;
+  
+  constructor(options?: Backbone.ViewOptions) {
+    super({...{className: 'app'}, ...options});
+    this.persons = new PersonCollection();
+    this.personsView = new PersonsView({collection: this.persons});
+    this.busy = false;
+  }
+
+  fetch() {
+    this.busy = true;
+    $.ajax({url: '/people',
+            dataType: 'json',
+            success: (data: PersonJson[]) => {
+              this.busy = false;
+              this.render();
+              this.persons.reset(data.map(d => new Person(d)));
+            }
+           });
+  }
+  
+  render() {
+    this.$el.empty();
+
+    if(this.busy) {
       this.$el.text('Loading...');
+    } else {
+      this.$el.append(this.personsView.render().el)
     }
     return this;
   }
@@ -60,15 +89,10 @@ class App extends Backbone.View {
 $(() => {
   
   const app = new App();
+  app.fetch();  
+
   const $node : JQuery<HTMLElement> = $('<div class="app-container"></div>');
-
   $node.append(app.render().el);
-
-  $.ajax({url: '/people',
-          dataType: 'json',
-          success: (data: PersonJson[]) => { app.setPeople(data.map(d => new Person(d))); }
-          });
-  
   
   $('body').append($node);
 });
