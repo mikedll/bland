@@ -27,8 +27,8 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	db, dbErr := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if dbErr != nil {
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
 		log.Fatal("Unable to connect to database.")
 	}
 	defer db.Close()
@@ -134,21 +134,18 @@ func main() {
 		
 		people := []Person{}
 
-		rows, qErr := db.Query("select id, name from persons")
-		if qErr != nil {
-			log.Fatal(qErr)
-			log.Println("Error while executing query.")
-			w.WriteHeader(http.StatusInternalServerError)
+		rows, err := db.Query("select id, name from persons")
+		if err != nil {
+			respErr(err.Error(), w)
 			return
 		}
 		defer rows.Close()
 
 		for rows.Next() {
 			next := Person{}
-			scanErr := rows.Scan(&next.Id, &next.Name)
-			if scanErr != nil {
-				log.Println("Error while reading from result set.")
-				w.WriteHeader(http.StatusInternalServerError)
+			err = rows.Scan(&next.Id, &next.Name)
+			if err != nil {
+				respErr(err.Error(), w)
 				return
 			}
 			
@@ -157,8 +154,7 @@ func main() {
 
 		peopleJson, err := json.Marshal(people)
 		if err != nil {
-			log.Println("Error in names fetch.")
-			w.WriteHeader(http.StatusInternalServerError)
+			respErr(err.Error(), w)
 			return
 		}
 		
