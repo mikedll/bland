@@ -13,7 +13,7 @@ func main() {
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.Fatal("Error obtaining executable.")
+		log.Fatal("Error finding cwd.")
 		return
 	}
 	
