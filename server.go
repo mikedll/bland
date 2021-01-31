@@ -18,18 +18,18 @@ func main() {
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.Fatal("Error finding cwd.")
+		log.Fatal(err.Error())
 		return
 	}
 
-	loadErr := godotenv.Load()
-	if loadErr != nil {
-		log.Fatal("Error loading .env file")
+	err = godotenv.Load()
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatal("Unable to connect to database.")
+		log.Fatal(err.Error())
 	}
 	defer db.Close()
 	
