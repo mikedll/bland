@@ -25,14 +25,32 @@ class PersonView extends Backbone.View {
 }
 
 class PersonsView extends Backbone.View {
+  busy: boolean;
+  
   constructor(options?: Backbone.ViewOptions) {
     super({...{tagName: 'ul', className: 'people'}, ...options});
 
-    this.listenTo(this.collection, 'reset', this.render)
+    this.listenTo(this.collection, 'request', this.onRequest);
+    this.listenTo(this.collection, 'sync', this.onSync);
+  }
+
+  onRequest() {
+    this.busy = true;
+    this.render();
+  }
+  
+  onSync() {
+    this.busy = false;
+    this.render();
   }
   
   render() {
     this.$el.empty();
+
+    if(this.busy) {
+      this.$el.text('Loading...');
+      return this;
+    }
 
     if(this.collection.length === 0) {
       this.$el.text("No persons.");
@@ -47,11 +65,11 @@ class PersonsView extends Backbone.View {
   }
 }
 
-class PersonCollection extends Backbone.Collection {
+class PersonCollection extends Backbone.Collection<Person> {
+  url: string = '/people';
 }
 
 class App extends Backbone.View {
-  busy: boolean;
   persons: PersonCollection;
   personsView: PersonsView;
   
@@ -59,29 +77,13 @@ class App extends Backbone.View {
     super({...{className: 'app'}, ...options});
     this.persons = new PersonCollection();
     this.personsView = new PersonsView({collection: this.persons});
-    this.busy = false;
-  }
-
-  fetch() {
-    this.busy = true;
-    $.ajax({url: '/people',
-            dataType: 'json',
-            success: (data: PersonJson[]) => {
-              this.busy = false;
-              this.render();
-              this.persons.reset(data.map(d => new Person(d)));
-            }
-           });
+    this.persons.fetch();
   }
   
   render() {
     this.$el.empty();
 
-    if(this.busy) {
-      this.$el.text('Loading...');
-    } else {
-      this.$el.append(this.personsView.render().el)
-    }
+    this.$el.append(this.personsView.render().el)
     return this;
   }
 }
@@ -89,8 +91,6 @@ class App extends Backbone.View {
 $(() => {
   
   const app = new App();
-  app.fetch();  
-
   const $node : JQuery<HTMLElement> = $('<div class="app-container"></div>');
   $node.append(app.render().el);
   
