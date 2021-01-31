@@ -49,9 +49,7 @@ func main() {
 			return
 		}
 
-		localPath := cwd + "/client_public/" + relativePath
-		log.Println("local path: " + localPath)
-		bytes, err := ioutil.ReadFile(localPath)
+		bytes, err := ioutil.ReadFile(cwd + "/client_public/" + relativePath)
 		if os.IsNotExist(err) {
 			log.Println("File not found: " + relativePath)
 			w.WriteHeader(http.StatusNotFound)
