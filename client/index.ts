@@ -65,7 +65,7 @@ class PersonsView extends Backbone.View<Person> {
     if(this.$ul === undefined) {
       this.$leadIn = $('<div class="lead-in"></div>');
       this.$el.append(this.$leadIn);
-      this.$ul = $('<ul></ul>');
+      this.$ul = $('<ul class="people"></ul>');
       this.$el.append(this.$ul);
     }
     
