@@ -1,1 +1,0 @@
-{"version":3,"file":"bundle.js","sources":["webpack://bland/./client/index.ts"],"sourcesContent":["var s = {};\ns[\"greeting\"] = \"Hey everyone, I'm here.\";\nconsole.log(s['greeting']);\n"],"mappings":";;;;AAAA;AACA;AACA;;;A","sourceRoot":""}
