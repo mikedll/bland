@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"log"
 	"os"
+	"database/sql"
+	_ "github.com/lib/pq"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -17,6 +20,17 @@ func main() {
 		log.Fatal("Error finding cwd.")
 		return
 	}
+
+	loadErr := godotenv.Load()
+	if loadErr != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	db, dbErr := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if dbErr != nil {
+		log.Fatal("Unable to connect to database.")
+	}
+	defer db.Close()
 	
 	staticServe := func(relativePath string, w http.ResponseWriter, req *http.Request) {
 		mimeTypes := map[string]string{
@@ -71,15 +85,26 @@ func main() {
 	names := func(w http.ResponseWriter, req *http.Request) {
 		people := []Person{}
 
-		people = append(people, Person{
-			Id: 1,
-			Name: "Michael",
-		})
-		
-		people = append(people, Person{
-			Id: 2,
-			Name: "Ben",
-		})
+		rows, qErr := db.Query("select id, name from persons limit 5")
+		if qErr != nil {
+			log.Fatal(qErr)
+			log.Println("Error while executing query.")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			next := Person{}
+			scanErr := rows.Scan(&next.Id, &next.Name)
+			if scanErr != nil {
+				log.Println("Error while reading from result set.")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			
+			people = append(people, next)
+		}
 
 		peopleJson, err := json.Marshal(people)
 		if err != nil {

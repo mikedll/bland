@@ -4,3 +4,7 @@ server
 node_modules/*
 
 public/*
+
+
+.env
+.envrc
