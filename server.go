@@ -91,11 +91,50 @@ func main() {
 		Id int64    `json:"id"`
 		Name string `json:"name"`
 	}
+
+	respErr := func(s string, w http.ResponseWriter) {
+		log.Println(s)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 	
-	names := func(w http.ResponseWriter, req *http.Request) {
+	newPerson := func(w http.ResponseWriter, req *http.Request) {
+		decoder := json.NewDecoder(req.Body)
+
+		newPerson := Person{}
+		decoder.Decode(&newPerson)
+
+		res, err := db.Query("INSERT INTO persons (name) VALUES ($1) returning id", newPerson.Name)
+		if err != nil {
+			respErr(err.Error(), w)
+			return
+		}
+		defer res.Close()
+
+		if res.Next() {
+			res.Scan(&newPerson.Id)
+		}
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+
+		json, err := json.Marshal(newPerson)
+		if err != nil {
+			respErr(err.Error(), w)
+			return
+		}
+		
+		w.Write(json)
+	}
+	
+	handlePeople := func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == "POST" {
+			newPerson(w, req)
+			return
+		}
+		
 		people := []Person{}
 
-		rows, qErr := db.Query("select id, name from persons limit 5")
+		rows, qErr := db.Query("select id, name from persons")
 		if qErr != nil {
 			log.Fatal(qErr)
 			log.Println("Error while executing query.")
@@ -128,7 +167,7 @@ func main() {
 	}
 
 	http.Handle("/", http.HandlerFunc(root))
-	http.Handle("/people", http.HandlerFunc(names))
+	http.Handle("/people", http.HandlerFunc(handlePeople))
 	http.Handle("/public/", http.HandlerFunc(public))
 
 	log.Println("Booting up...")
