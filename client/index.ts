@@ -5,9 +5,23 @@ import $ from 'jquery';
 
 import Backbone from 'backbone';
 
-interface Person {
+interface PersonJson {
   id: number,
   name: string
+}
+
+class Person extends Backbone.Model {
+}
+
+class PersonView extends Backbone.View {
+  constructor(options?: Backbone.ViewOptions) {
+    super({...{tagName: 'li'}, ...options})
+  }
+
+  render() {
+    this.$el.text(this.model.get('id') + ': ' + this.model.get('name'));
+    return this;
+  }
 }
 
 class App extends Backbone.View {
@@ -31,7 +45,8 @@ class App extends Backbone.View {
       } else {
         const $ul = $('<ul class="people"></ul>')
         this.people.forEach((person: Person) => {
-          $ul.append($('<li>' + person.id + " -> " + person.name + '</li>'));
+          const personView = new PersonView({model: person});
+          $ul.append(personView.render().el)
         });
         this.$el.append($ul);
       }
@@ -51,7 +66,7 @@ $(() => {
 
   $.ajax({url: '/people',
           dataType: 'json',
-          success: (data: Person[]) => { app.setPeople(data); }
+          success: (data: PersonJson[]) => { app.setPeople(data.map(d => new Person(d))); }
           });
   
   
