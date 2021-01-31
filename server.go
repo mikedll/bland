@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"encoding/json"
 	"net/http"
 	"io/ioutil"
 	"path/filepath"
@@ -54,10 +55,45 @@ func main() {
 	}
 	
 	root := func(w http.ResponseWriter, req *http.Request) {
+		if(req.URL.Path != "/") {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		
 		staticServe("index.html", w, req)
 	}
 
+	type Person struct {
+		Id int64    `json:"id"`
+		Name string `json:"name"`
+	}
+	
+	names := func(w http.ResponseWriter, req *http.Request) {
+		people := []Person{}
+
+		people = append(people, Person{
+			Id: 1,
+			Name: "Michael",
+		})
+		
+		people = append(people, Person{
+			Id: 2,
+			Name: "Ben",
+		})
+
+		peopleJson, err := json.Marshal(people)
+		if err != nil {
+			log.Println("Error in names fetch.")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		
+		w.Header().Add("Content-Type", "application/json");
+		w.Write(peopleJson);
+	}
+
 	http.Handle("/", http.HandlerFunc(root))
+	http.Handle("/people", http.HandlerFunc(names))
 	http.Handle("/public/", http.HandlerFunc(public))
 
 	log.Println("Booting up...")
