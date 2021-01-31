@@ -24,7 +24,7 @@ class PersonView extends Backbone.View {
   }
 }
 
-class PersonsView extends Backbone.View {
+class PersonsView extends Backbone.View<Person> {
   busy: boolean;
   
   constructor(options?: Backbone.ViewOptions) {
