@@ -1,6 +1,6 @@
 
-let s: String;
+let s: { [key: string]: number } = {};
 
-s = "Welcome to happy land.";
+s["hello"] = 1;
 
 console.log(s);
