@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"encoding/json"
 	"net/http"
 	"io/ioutil"
@@ -67,9 +66,9 @@ func main() {
 			return
 		}
 		
-		fmt.Println("Serving static: public/" + relativePath)
 		w.Header().Add("Content-Type", mimeType)
 		w.Write(bytes)		
+		log.Println("Served static: public/" + relativePath)
 	}
 	
 	public := func(w http.ResponseWriter, req *http.Request) {
@@ -124,6 +123,7 @@ func main() {
 		}
 		
 		w.Write(json)
+		log.Println("Served POST /people")
 	}
 	
 	handlePeople := func(w http.ResponseWriter, req *http.Request) {
@@ -160,6 +160,7 @@ func main() {
 		
 		w.Header().Add("Content-Type", "application/json");
 		w.Write(peopleJson);
+		log.Println("Served GET /people")
 	}
 
 	http.Handle("/", http.HandlerFunc(root))
