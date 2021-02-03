@@ -2,12 +2,12 @@ const path = require('path');
 
 module.exports = {
   mode: 'development',
-  entry: './client/index.ts',
+  entry: './client/index.tsx',
   target: 'web',
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.tsx?$/,
         use: 'ts-loader',
         exclude: /node_modules/,
       },
@@ -18,7 +18,7 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: [ '.ts' ],
+    extensions: [ '.js', '.ts', '.tsx' ],
   },
   output: {
     filename: 'bundle.js',
