@@ -65,7 +65,7 @@ class PersonList extends React.Component {
     })
       .then(response => response.json())
       .then(data => this.setState((prevState) => {
-        return update(prevState, {name: {$set: ""}, persons: {$push: [data]}});
+        return {...update(prevState, {persons: {$push: [data]}}), ...{name: ""}};
       }))
       .catch(e => {
         this.setState({error: "An error occurred when creating the person record"});
