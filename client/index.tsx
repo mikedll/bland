@@ -1,8 +1,9 @@
 
 import './style.scss';
 
-import React from 'react';
+import update from 'immutability-helper';
 
+import React from 'react';
 import ReactDOM from 'react-dom'
 
 interface PersonProps {};
@@ -15,7 +16,8 @@ interface Person {
 interface PersonState {
   persons: Person[],
   fetched: boolean,
-  error: string
+  error: string,
+  name: string
 }
 
 class PersonList extends React.Component {
@@ -26,8 +28,12 @@ class PersonList extends React.Component {
     this.state = {
       persons: [],
       fetched: false,
-      error: ""
+      error: "",
+      name: ""
     }
+
+    this.onNameChange = this.onNameChange.bind(this);
+    this.onSubmit = this.onSubmit.bind(this);
   }
 
   componentDidMount() {
@@ -41,6 +47,29 @@ class PersonList extends React.Component {
         })
       
     }
+  }
+
+  onNameChange(e: React.ChangeEvent<HTMLInputElement>) {
+    this.setState({name: e.target.value});
+  }
+  
+  onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    
+    fetch('/people', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({name: this.state.name})
+    })
+      .then(response => response.json())
+      .then(data => this.setState((prevState) => {
+        return update(prevState, {name: {$set: ""}, persons: {$push: [data]}});
+      }))
+      .catch(e => {
+        this.setState({error: "An error occurred when creating the person record"});
+      });
   }
   
   render() {
@@ -57,7 +86,10 @@ class PersonList extends React.Component {
         {errorMsg}
         
         <ul className="people">{lis}</ul>
-        
+
+        <form onSubmit={this.onSubmit}>
+          <input type="text" name="name" onChange={this.onNameChange} value={this.state.name} placeholder="Name"></input>
+        </form>
       </div>
     );
   }
