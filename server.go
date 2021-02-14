@@ -83,7 +83,7 @@ func main() {
 		log.Println("Served POST /people")
 	}
 	
-	handlePeople := func(w http.ResponseWriter, req *http.Request) {
+	handlePersons := func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == "POST" {
 			newPerson(w, req)
 			return
@@ -122,7 +122,7 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", root)
-	router.HandleFunc("/people", handlePeople)
+	router.HandleFunc("/persons", handlePersons)
 	router.PathPrefix("/public").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir(cwd + "/public"))))
 	
 	http.Handle("/", router)
