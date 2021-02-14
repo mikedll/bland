@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"io/ioutil"
-	"path/filepath"
 	"log"
 	"os"
 	"database/sql"
 	_ "github.com/lib/pq"
 	"github.com/joho/godotenv"
 	"github.com/gorilla/mux"
-	"strings"
 )
 
 func main() {
@@ -32,63 +30,27 @@ func main() {
 		log.Fatal(err.Error())
 	}
 	defer db.Close()
-	
-	staticServe := func(relativePath string, w http.ResponseWriter, req *http.Request) {
-		parts := strings.Split(relativePath, "/")
 
-		for _, part := range parts {
-			if part == ".." {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-		}
-		
-		mimeTypes := map[string]string{
-			"js": "text/javascript",
-			"map": "application/octet-stream",
-			"html": "text/html",
-		}
-		
-		bytes, err := ioutil.ReadFile(cwd + "/public/" + relativePath)
-		if os.IsNotExist(err) {
-			log.Println("File not found: " + relativePath)
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		ext := filepath.Ext(relativePath)
-		fileExt := ext[1:len(ext)]
-
-		var ok bool
-		mimeType := ""
-		if mimeType, ok = mimeTypes[fileExt]; !ok {
-			log.Println("Couldn't find mime type for " + relativePath)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		
-		w.Header().Add("Content-Type", mimeType)
-		w.Write(bytes)		
-		log.Println("Served static: public/" + relativePath)
+	respErr := func(s string, w http.ResponseWriter) {
+		log.Println(s)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
-	
+
 	root := func(w http.ResponseWriter, req *http.Request) {
-		if(req.URL.Path != "/") {
-			w.WriteHeader(http.StatusNotFound)
+		bytes, err := ioutil.ReadFile(cwd + "/public/index.html")
+		if os.IsNotExist(err) {
+			respErr(err.Error(), w)
 			return
 		}
 		
-		staticServe("index.html", w, req)
+		w.Header().Add("Content-Type", "text/html")
+		w.Write(bytes)		
+		log.Println("Served root.")
 	}
 
 	type Person struct {
 		Id int64    `json:"id"`
 		Name string `json:"name"`
-	}
-
-	respErr := func(s string, w http.ResponseWriter) {
-		log.Println(s)
-		w.WriteHeader(http.StatusInternalServerError)
 	}
 	
 	newPerson := func(w http.ResponseWriter, req *http.Request) {
@@ -161,7 +123,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", root)
 	router.HandleFunc("/people", handlePeople)
-	router.PathPrefix("/public").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
+	router.PathPrefix("/public").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir(cwd + "/public"))))
 	
 	http.Handle("/", router)
 
