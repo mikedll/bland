@@ -169,9 +169,6 @@ function startDeletePerson(id: number): (dispatch: Dispatch<PersonsActionTypes>,
   }
 }
 
-type MyExtraArg = undefined;
-type MyThunkDispatch = ThunkDispatch<GlobalState, MyExtraArg, Action>;
-
 function fetchPersons(): (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => void {
   return (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => {
     dispatch(requestPersons())
@@ -225,6 +222,9 @@ const mainUi = function(state: MainUIState = {
 }
 
 const rootReducer = combineReducers({mainUi, persons})
+
+type MyExtraArg = undefined;
+type MyThunkDispatch = ThunkDispatch<GlobalState, MyExtraArg, Action>;
 
 const makeStore = function() { return createStore( rootReducer, applyMiddleware(thunkMiddleware) ) }
 
