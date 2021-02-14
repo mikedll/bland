@@ -141,7 +141,7 @@ function finishDeletePerson(person: Person): PersonsActionTypes {
   }
 }
 
-function startCreatePerson({name}: {name: string}): (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => void {
+function startCreatePerson({name}: {name: string}): (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => Promise<PersonsActionTypes> {
   return (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => {
     dispatch(createPerson());
 
@@ -245,7 +245,7 @@ interface PersonProps {
   fetchPersons: () => void,
   forget: () => void,
   deletePerson: (id: number) => void,
-  createPerson: (obj: {name: string}) => void
+  createPerson: (obj: {name: string}) => Promise<PersonsActionTypes>
 };
 
 class PersonList extends React.Component<PersonProps> {
@@ -278,7 +278,8 @@ class PersonList extends React.Component<PersonProps> {
   onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    this.props.createPerson({name: this.state.name}).then(_ => this.setState({name: ""});
+    this.props.createPerson({name: this.state.name})
+        .then(_ => this.setState({name: ""}));
   }
 
   onForget(e: React.MouseEvent) {
