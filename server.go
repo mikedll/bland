@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	_ "github.com/lib/pq"
 	"github.com/joho/godotenv"
+	"github.com/gorilla/mux"
 	"strings"
 )
 
@@ -69,12 +70,6 @@ func main() {
 		w.Header().Add("Content-Type", mimeType)
 		w.Write(bytes)		
 		log.Println("Served static: public/" + relativePath)
-	}
-	
-	public := func(w http.ResponseWriter, req *http.Request) {
-		prefix := "/public/"
-		relativePath := req.URL.Path[len(prefix):len(req.URL.Path)]
-		staticServe(relativePath, w, req)
 	}
 	
 	root := func(w http.ResponseWriter, req *http.Request) {
@@ -163,9 +158,12 @@ func main() {
 		log.Println("Served GET /people")
 	}
 
-	http.Handle("/", http.HandlerFunc(root))
-	http.Handle("/people", http.HandlerFunc(handlePeople))
-	http.Handle("/public/", http.HandlerFunc(public))
+	router := mux.NewRouter()
+	router.HandleFunc("/", root)
+	router.HandleFunc("/people", handlePeople)
+	router.PathPrefix("/public").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
+	
+	http.Handle("/", router)
 
 	log.Println("Booting up...")
 	
