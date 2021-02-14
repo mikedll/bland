@@ -14,6 +14,11 @@ import ReactDOM from 'react-dom'
 const REQUEST_PERSONS = 'REQUEST_PERSONS';
 const REQUEST_PERSONS_ERROR = 'REQUEST_PERSONS_ERROR';
 const FINISH_REQUEST_PERSONS = 'FINISH_REQUEST_PERSONS';
+const FORGET_PERSONS = 'FORGET_PERSONS';
+
+interface ForgetPersonsAction {
+  type: typeof FORGET_PERSONS
+}
 
 interface RequestPersonsErrorAction {
   type: typeof REQUEST_PERSONS_ERROR,
@@ -28,7 +33,14 @@ interface FinishRequestPersonsAction {
   persons: Person[]
 }
 
-export type PersonsActionTypes = RequestPersonsAction | RequestPersonsErrorAction | FinishRequestPersonsAction
+export type PersonsActionTypes = RequestPersonsAction | RequestPersonsErrorAction |
+                                 ForgetPersonsAction | FinishRequestPersonsAction;
+
+function forgetPersons(): PersonsActionTypes {
+  return {
+    type: FORGET_PERSONS
+  }
+}
 
 function requestPersons(): PersonsActionTypes {
   return {
@@ -71,7 +83,9 @@ function fetchPersons(): (dispatch: Dispatch<PersonsActionTypes>, getState: () =
 const persons = function(state: Person[] = [], action: PersonsActionTypes) {
   switch(action.type) {
     case FINISH_REQUEST_PERSONS:
-      return action.persons
+      return action.persons;
+    case FORGET_PERSONS:
+      return [];
     default:
       return state;
   }
@@ -109,7 +123,8 @@ interface PersonState {
 interface PersonProps {
   busy: boolean,
   persons: Person[],
-  fetchPersons: () => void
+  fetchPersons: () => void,
+  forget: () => void
 };
 
 class PersonList extends React.Component<PersonProps> {
@@ -124,6 +139,7 @@ class PersonList extends React.Component<PersonProps> {
       name: ""
     }
 
+    this.onForget = this.onForget.bind(this);
     this.onNameChange = this.onNameChange.bind(this);
     this.onSubmit = this.onSubmit.bind(this);
   }
@@ -157,6 +173,11 @@ class PersonList extends React.Component<PersonProps> {
         this.setState({error: "An error occurred when creating the person record"});
       });
   }
+
+  onForget(e: React.MouseEvent) {
+    e.preventDefault();
+    this.props.forget();
+  }
   
   render() {
     const busyMsg = this.props.busy ? (<div>Loading...</div>) : null;
@@ -178,6 +199,9 @@ class PersonList extends React.Component<PersonProps> {
         <form onSubmit={this.onSubmit}>
           <input type="text" name="name" onChange={this.onNameChange} value={this.state.name} placeholder="Name"></input>
         </form>
+
+        <br/>
+        <a href="#" onClick={this.onForget}>Forget</a>
       </div>
     );
   }
@@ -189,7 +213,8 @@ const mapStateToProps = (state: GlobalState) => {
 
 const mapDispatchToProps = (dispatch: MyThunkDispatch) => {
   return {
-    fetchPersons: () => dispatch(fetchPersons())
+    fetchPersons: () => dispatch(fetchPersons()),
+    forget: () => dispatch(forgetPersons())
   }
 }
 
