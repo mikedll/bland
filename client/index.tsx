@@ -15,6 +15,22 @@ const REQUEST_PERSONS = 'REQUEST_PERSONS';
 const REQUEST_PERSONS_ERROR = 'REQUEST_PERSONS_ERROR';
 const FINISH_REQUEST_PERSONS = 'FINISH_REQUEST_PERSONS';
 const FORGET_PERSONS = 'FORGET_PERSONS';
+const DELETE_PERSON = 'DELETE_PERSON';
+const DELETE_PERSON_ERROR = 'DELETE_PERSON_ERROR';
+const FINISH_DELETE_PERSON = 'FINISH_DELETE_PERSON';
+
+interface DeletePersonAction {
+  type: typeof DELETE_PERSON
+}
+
+interface DeletePersonErrorAction {
+  type: typeof DELETE_PERSON_ERROR
+}
+
+interface FinishDeletePersonAction {
+  type: typeof FINISH_DELETE_PERSON,
+  person: Person
+}
 
 interface ForgetPersonsAction {
   type: typeof FORGET_PERSONS
@@ -33,8 +49,18 @@ interface FinishRequestPersonsAction {
   persons: Person[]
 }
 
-export type PersonsActionTypes = RequestPersonsAction | RequestPersonsErrorAction |
-                                 ForgetPersonsAction | FinishRequestPersonsAction;
+export type PersonsActionTypes = RequestPersonsAction | RequestPersonsErrorAction | FinishRequestPersonsAction |
+                                 ForgetPersonsAction | DeletePersonAction | DeletePersonErrorAction |
+                                 FinishDeletePersonAction;
+
+interface MainUIState {
+  busy: boolean
+}
+
+interface GlobalState {
+  persons: Person[],
+  mainUi: MainUIState
+}
 
 function forgetPersons(): PersonsActionTypes {
   return {
@@ -55,13 +81,33 @@ function receivePersons(persons: Person[]): PersonsActionTypes {
   }
 }
 
-interface MainUIState {
-  busy: boolean
+function deletePerson(): PersonsActionTypes {
+  return {
+    type: DELETE_PERSON
+  }
 }
 
-interface GlobalState {
-  persons: Person[],
-  mainUi: MainUIState
+function deletePersonError(): PersonsActionTypes {
+  return {
+    type: DELETE_PERSON_ERROR
+  }
+}
+
+function finishDeletePerson(person: Person): PersonsActionTypes {
+  return {
+    type: FINISH_DELETE_PERSON,
+    person: person
+  }
+}
+
+function startDeletePerson(id: number): (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => void {
+  return (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => {
+    dispatch(deletePerson());
+
+    fetch('/persons/' + id, {method: 'DELETE'})
+      .then(response => response.json())
+      .then(person => dispatch(finishDeletePerson(person)));
+  }
 }
 
 type MyExtraArg = undefined;
@@ -79,13 +125,15 @@ function fetchPersons(): (dispatch: Dispatch<PersonsActionTypes>, getState: () =
   }
 }
 
-
 const persons = function(state: Person[] = [], action: PersonsActionTypes) {
   switch(action.type) {
     case FINISH_REQUEST_PERSONS:
       return action.persons;
     case FORGET_PERSONS:
       return [];
+    case FINISH_DELETE_PERSON:
+      const index = state.findIndex((el) => { return el.id == action.person.id })
+      return update(state, {$splice: [[index, 1]]})
     default:
       return state;
   }
@@ -98,6 +146,11 @@ const mainUi = function(state: MainUIState = {
     case REQUEST_PERSONS:
       return {...state, ...{busy: true}};
     case FINISH_REQUEST_PERSONS:
+      return {...state, ...{busy: false}};
+    case DELETE_PERSON:
+      return {...state, ...{busy: true}};
+    case DELETE_PERSON_ERROR:
+    case FINISH_DELETE_PERSON:
       return {...state, ...{busy: false}};
     default:
       return state
@@ -124,7 +177,8 @@ interface PersonProps {
   busy: boolean,
   persons: Person[],
   fetchPersons: () => void,
-  forget: () => void
+  forget: () => void,
+  deletePerson: (id: number) => void
 };
 
 class PersonList extends React.Component<PersonProps> {
@@ -142,6 +196,7 @@ class PersonList extends React.Component<PersonProps> {
     this.onForget = this.onForget.bind(this);
     this.onNameChange = this.onNameChange.bind(this);
     this.onSubmit = this.onSubmit.bind(this);
+    this.onDelete = this.onDelete.bind(this);
   }
 
   componentDidMount() {
@@ -178,6 +233,11 @@ class PersonList extends React.Component<PersonProps> {
     e.preventDefault();
     this.props.forget();
   }
+
+  onDelete(e: React.MouseEvent, id: number) {
+    e.preventDefault();
+    this.props.deletePerson(id);
+  }
   
   render() {
     const busyMsg = this.props.busy ? (<div>Loading...</div>) : null;
@@ -185,7 +245,7 @@ class PersonList extends React.Component<PersonProps> {
     const errorMsg = this.state.error !== '' ? (<div className={"alert alert-danger"}>{this.state.error}</div>) : null;
     
     const lis = this.props.persons.map((person) => (
-      <li key={person.id}>{person.name}</li>
+      <li key={person.id}>{person.name} <a href="#" onClick={(e: React.MouseEvent) => this.onDelete(e, person.id)}>[Delete]</a></li>
     ));
     
     return (
@@ -214,7 +274,8 @@ const mapStateToProps = (state: GlobalState) => {
 const mapDispatchToProps = (dispatch: MyThunkDispatch) => {
   return {
     fetchPersons: () => dispatch(fetchPersons()),
-    forget: () => dispatch(forgetPersons())
+    forget: () => dispatch(forgetPersons()),
+    deletePerson: (id: number) => dispatch(startDeletePerson(id))
   }
 }
 

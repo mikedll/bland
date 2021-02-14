@@ -120,9 +120,46 @@ func main() {
 		log.Println("Served GET /people")
 	}
 
+	deletePerson := func(w http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		rows, err := db.Query("select id, name from persons where id = $1", vars["id"])
+		if err != nil {
+			respErr(err.Error(), w)
+			return
+		}
+
+		person := Person{}
+
+		if rows.Next() {
+			err = rows.Scan(&person.Id, &person.Name)
+			if err != nil {
+				respErr(err.Error(), w)
+				return
+			}
+		}
+
+		delete, err := db.Query("delete from persons where id = $1", person.Id)
+		if err != nil {
+			respErr(err.Error(), w)
+			return
+		}
+		defer delete.Close()
+
+		personJson, err := json.Marshal(person)
+		if err != nil {
+			respErr(err.Error(), w)
+			return
+		}
+		
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(personJson)
+		log.Println("Served DELETE /people/" + vars["id"])
+	}
+
 	router := mux.NewRouter()
 	router.HandleFunc("/", root)
 	router.HandleFunc("/persons", handlePersons)
+	router.HandleFunc("/persons/{id}", deletePerson).Methods("DELETE")
 	router.PathPrefix("/public").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir(cwd + "/public"))))
 	
 	http.Handle("/", router)
