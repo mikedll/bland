@@ -145,7 +145,7 @@ function startCreatePerson({name}: {name: string}): (dispatch: Dispatch<PersonsA
   return (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => {
     dispatch(createPerson());
 
-    fetch('/persons', {
+    return fetch('/persons', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -278,7 +278,7 @@ class PersonList extends React.Component<PersonProps> {
   onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    this.props.createPerson({name: this.state.name});    
+    this.props.createPerson({name: this.state.name}).then(_ => this.setState({name: ""});
   }
 
   onForget(e: React.MouseEvent) {
