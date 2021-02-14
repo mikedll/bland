@@ -18,13 +18,31 @@ const FORGET_PERSONS = 'FORGET_PERSONS';
 const DELETE_PERSON = 'DELETE_PERSON';
 const DELETE_PERSON_ERROR = 'DELETE_PERSON_ERROR';
 const FINISH_DELETE_PERSON = 'FINISH_DELETE_PERSON';
+const CREATE_PERSON = 'CREATE_PERSON';
+const FINISH_CREATE_PERSON = 'FINISH_CREATE_PERSON';
+const CREATE_PERSON_ERROR = 'CREATE_PERSON_ERROR';
+
+interface CreatePersonAction {
+  type: typeof CREATE_PERSON
+}
+
+interface FinishCreatePersonAction {
+  type: typeof FINISH_CREATE_PERSON,
+  person: Person
+}
+
+interface CreatePersonErrorAction {
+  type: typeof CREATE_PERSON_ERROR,
+  error: string
+}
 
 interface DeletePersonAction {
-  type: typeof DELETE_PERSON
+  type: typeof DELETE_PERSON,
 }
 
 interface DeletePersonErrorAction {
-  type: typeof DELETE_PERSON_ERROR
+  type: typeof DELETE_PERSON_ERROR,
+  error: string
 }
 
 interface FinishDeletePersonAction {
@@ -50,16 +68,38 @@ interface FinishRequestPersonsAction {
 }
 
 export type PersonsActionTypes = RequestPersonsAction | RequestPersonsErrorAction | FinishRequestPersonsAction |
-                                 ForgetPersonsAction | DeletePersonAction | DeletePersonErrorAction |
-                                 FinishDeletePersonAction;
+                                 ForgetPersonsAction |
+                                 DeletePersonAction | DeletePersonErrorAction | FinishDeletePersonAction |
+                                 CreatePersonAction | FinishCreatePersonAction | CreatePersonErrorAction;
 
 interface MainUIState {
-  busy: boolean
+  busy: boolean,
+  error: string
 }
 
 interface GlobalState {
   persons: Person[],
   mainUi: MainUIState
+}
+
+function createPerson(): PersonsActionTypes {
+  return {
+    type: CREATE_PERSON
+  }
+}
+
+function createPersonError(e: string): PersonsActionTypes {
+  return {
+    type: CREATE_PERSON_ERROR,
+    error: e
+  }
+}
+
+function finishCreatePerson(person: Person): PersonsActionTypes {
+  return {
+    type: FINISH_CREATE_PERSON,
+    person: person
+  }
 }
 
 function forgetPersons(): PersonsActionTypes {
@@ -87,9 +127,10 @@ function deletePerson(): PersonsActionTypes {
   }
 }
 
-function deletePersonError(): PersonsActionTypes {
+function deletePersonError(e: string): PersonsActionTypes {
   return {
-    type: DELETE_PERSON_ERROR
+    type: DELETE_PERSON_ERROR,
+    error: e
   }
 }
 
@@ -100,13 +141,31 @@ function finishDeletePerson(person: Person): PersonsActionTypes {
   }
 }
 
+function startCreatePerson({name}: {name: string}): (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => void {
+  return (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => {
+    dispatch(createPerson());
+
+    fetch('/persons', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({name})
+    })
+      .then(response => response.json())
+      .then(person => dispatch(finishCreatePerson(person)))
+      .catch(e => dispatch(createPersonError(e)));    
+  }
+}
+
 function startDeletePerson(id: number): (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => void {
   return (dispatch: Dispatch<PersonsActionTypes>, getState: () => GlobalState) => {
     dispatch(deletePerson());
 
     fetch('/persons/' + id, {method: 'DELETE'})
       .then(response => response.json())
-      .then(person => dispatch(finishDeletePerson(person)));
+      .then(person => dispatch(finishDeletePerson(person)))
+      .catch(e => dispatch(deletePersonError(e)));
   }
 }
 
@@ -134,24 +193,32 @@ const persons = function(state: Person[] = [], action: PersonsActionTypes) {
     case FINISH_DELETE_PERSON:
       const index = state.findIndex((el) => { return el.id == action.person.id })
       return update(state, {$splice: [[index, 1]]})
+    case FINISH_CREATE_PERSON:
+      return update(state, {$push: [action.person]});
     default:
       return state;
   }
 }
 
 const mainUi = function(state: MainUIState = {
-  busy: false
+  busy: false,
+  error: null
 }, action: PersonsActionTypes) {
   switch(action.type) {
     case REQUEST_PERSONS:
-      return {...state, ...{busy: true}};
+      return {...state, ...{busy: true, error: null}};
     case FINISH_REQUEST_PERSONS:
       return {...state, ...{busy: false}};
     case DELETE_PERSON:
       return {...state, ...{busy: true}};
     case DELETE_PERSON_ERROR:
+      return {...state, ...{busy: false, error: action.error}}
     case FINISH_DELETE_PERSON:
       return {...state, ...{busy: false}};
+    case CREATE_PERSON_ERROR:
+      return {...state, ...{busy: false, error: action.error}};
+    case FINISH_CREATE_PERSON:
+      return {...state, ...{busy: false, error: null}};
     default:
       return state
   }
@@ -167,18 +234,18 @@ interface Person {
 }
 
 interface PersonState {
-  persons: Person[],
   fetched: boolean,
-  error: string,
   name: string
 }
 
 interface PersonProps {
   busy: boolean,
+  error: string,
   persons: Person[],
   fetchPersons: () => void,
   forget: () => void,
-  deletePerson: (id: number) => void
+  deletePerson: (id: number) => void,
+  createPerson: (obj: {name: string}) => void
 };
 
 class PersonList extends React.Component<PersonProps> {
@@ -187,9 +254,7 @@ class PersonList extends React.Component<PersonProps> {
   constructor(props: PersonProps) {
     super(props);
     this.state = {
-      persons: [],
       fetched: false,
-      error: "",
       name: ""
     }
 
@@ -212,21 +277,8 @@ class PersonList extends React.Component<PersonProps> {
   
   onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
-    fetch('/people', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({name: this.state.name})
-    })
-      .then(response => response.json())
-      .then(data => this.setState((prevState) => {
-        return {...update(prevState, {persons: {$push: [data]}}), ...{name: ""}};
-      }))
-      .catch(e => {
-        this.setState({error: "An error occurred when creating the person record"});
-      });
+
+    this.props.createPerson({name: this.state.name});    
   }
 
   onForget(e: React.MouseEvent) {
@@ -240,9 +292,9 @@ class PersonList extends React.Component<PersonProps> {
   }
   
   render() {
-    const busyMsg = this.props.busy ? (<div>Loading...</div>) : null;
+    const busyMsg = this.props.busy ? (<div>Loading...</div>) : (<div>&nbsp;</div>);
     
-    const errorMsg = this.state.error !== '' ? (<div className={"alert alert-danger"}>{this.state.error}</div>) : null;
+    const errorMsg = this.props.error !== '' ? (<div className={"alert alert-danger"}>{this.props.error}</div>) : null;
     
     const lis = this.props.persons.map((person) => (
       <li key={person.id}>{person.name} <a href="#" onClick={(e: React.MouseEvent) => this.onDelete(e, person.id)}>[Delete]</a></li>
@@ -275,7 +327,8 @@ const mapDispatchToProps = (dispatch: MyThunkDispatch) => {
   return {
     fetchPersons: () => dispatch(fetchPersons()),
     forget: () => dispatch(forgetPersons()),
-    deletePerson: (id: number) => dispatch(startDeletePerson(id))
+    deletePerson: (id: number) => dispatch(startDeletePerson(id)),
+    createPerson: (obj: {name: string}) => dispatch(startCreatePerson(obj))
   }
 }
 

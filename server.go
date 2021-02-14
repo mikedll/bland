@@ -84,11 +84,6 @@ func main() {
 	}
 	
 	handlePersons := func(w http.ResponseWriter, req *http.Request) {
-		if req.Method == "POST" {
-			newPerson(w, req)
-			return
-		}
-		
 		people := []Person{}
 
 		rows, err := db.Query("select id, name from persons")
@@ -158,7 +153,8 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", root)
-	router.HandleFunc("/persons", handlePersons)
+	router.HandleFunc("/persons", handlePersons).Methods("GET")
+	router.HandleFunc("/persons", newPerson).Methods("POST")
 	router.HandleFunc("/persons/{id}", deletePerson).Methods("DELETE")
 	router.PathPrefix("/public").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir(cwd + "/public"))))
 	
