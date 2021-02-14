@@ -122,7 +122,8 @@ func main() {
 			respErr(err.Error(), w)
 			return
 		}
-
+		defer rows.Close()
+		
 		person := Person{}
 
 		if rows.Next() {
